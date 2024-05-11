@@ -33,6 +33,12 @@ async function run() {
     app.post('/volunteers', async (req, res) => {
       const user = req.body;
       const result = await volunterCollection.insertOne(user);
+      console.log(result);
+      res.send(result);
+    });
+    app.get('/volunteers', async (req, res) => {
+      const qurey = volunterCollection.find();
+      const result = await qurey.toArray();
       res.send(result);
     });
 
