@@ -74,6 +74,16 @@ async function run() {
       //  const query = { $text: { $search: 'trek' } };
       res.send(result);
     });
+    app.get('/mangesPost', async (req, res) => {
+      const result = await volunterCollection.find(req.query).toArray();
+      res.send(result);
+    });
+    app.delete('/mangesPost/:id', async (req, res) => {
+      const id = req.params.id;
+      const querys = { _id: new ObjectId(id) };
+      const result = await volunterCollection.deleteOne(querys);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 });
