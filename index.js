@@ -112,6 +112,19 @@ async function run() {
       const result = await volunterCollection.updateOne(qureyss, UpdateData);
       res.send(result);
     });
+
+    app.get('/myrequstData', async (req, res) => {
+      const result = await volunterRequesCollection.find(req.query).toArray();
+      res.send(result);
+    });
+
+    app.delete('/myrequstData/:id', async (req, res) => {
+      const id = req.params.id;
+      const qurey = { _id: new ObjectId(id) };
+      const result = await volunterRequesCollection.deleteOne(qurey);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 });
     console.log(
