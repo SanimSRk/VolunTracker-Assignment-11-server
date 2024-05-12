@@ -29,6 +29,7 @@ async function run() {
     await client.connect();
     const database = client.db('VolunttersDB');
     const volunterCollection = database.collection('volunterUser');
+    const volunterRequesCollection = database.collection('RequestUser');
 
     app.post('/volunteers', async (req, res) => {
       const user = req.body;
@@ -60,6 +61,20 @@ async function run() {
       const result = await volunterCollection.findOne(qurey);
       res.send(result);
     });
+
+    app.post('/volunteerRequest', async (req, res) => {
+      const user = req.body;
+
+      const result = await volunterRequesCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.get('/volunteerss', async (req, res) => {
+      const result = await volunterCollection.find(req.query).toArray();
+      //  const query = { $text: { $search: 'trek' } };
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 });
     console.log(
