@@ -85,6 +85,33 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/loderData/:id', async (req, res) => {
+      const id = req.params.id;
+      const user = { _id: new ObjectId(id) };
+      const result = await volunterCollection.findOne(user);
+      res.send(result);
+    });
+
+    app.put('/updatess/:id', async (req, res) => {
+      const id = req.params.id;
+      const qureyss = { _id: new ObjectId(id) };
+      const userData = req.body;
+      const UpdateData = {
+        $set: {
+          thumbnail: userData.thumbnail,
+          title: userData.title,
+          description: userData.description,
+          category: userData.category,
+          location: userData.location,
+          neededNumber: userData.neededNumber,
+          email: userData.email,
+          fullName: userData.fullName,
+          startDate: userData.startDate,
+        },
+      };
+      const result = await volunterCollection.updateOne(qureyss, UpdateData);
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 });
     console.log(
