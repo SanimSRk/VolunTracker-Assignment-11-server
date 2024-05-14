@@ -2,6 +2,8 @@ const express = require('express');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const cockieParser = require('cookie-parser');
 const app = express();
 const port = process.env.PORT || 5000;
 app.use(
@@ -11,6 +13,26 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cockieParser());
+
+const verifyToken = (req, res, next) => {
+  const token = req.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: 'unauthorized access' });
+  }
+  if (token) {
+    jwt.verify(token, process.env.ACCES_TOKEN_SECRET, (err, decode) => {
+      if (err) {
+        console.log(err);
+        return res.status(401).send({ message: 'unauthorized access' });
+      }
+      console.log(decode);
+      req.user = decode;
+
+      next();
+    });
+  }
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.mqe77mp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -26,36 +48,65 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     const database = client.db('VolunttersDB');
     const volunterCollection = database.collection('volunterUser');
     const volunterRequesCollection = database.collection('RequestUser');
+    //jwt tooken create
+    app.post('/jwt', async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCES_TOKEN_SECRET, {
+        expiresIn: '1d',
+      });
 
+      res
+        .cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        })
+        .send({ success: true });
+    });
+
+    app.get('/logout', async (req, res) => {
+      res
+        .clearCookie('token', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+          maxAge: 0,
+        })
+        .send({ success: true });
+    });
+
+    //get all for volunteer data
     app.post('/volunteers', async (req, res) => {
       const user = req.body;
       const result = await volunterCollection.insertOne(user);
-      console.log(result);
       res.send(result);
     });
-    app.get('/volunteers', async (req, res) => {
-      const qurey = volunterCollection.find();
+    app.get('/volunteers', verifyToken, async (req, res) => {
+      const qurey = volunterCollection.find({}).sort({ startDate: 1 });
       const result = await qurey.toArray();
       res.send(result);
     });
 
-    app.get('/volunteers/:id', async (req, res) => {
+    app.get('/volunteers/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const qurey = { _id: new ObjectId(id) };
       const result = await volunterCollection.findOne(qurey);
       res.send(result);
     });
 
-    app.get('/allVolunteers', async (req, res) => {
-      const result = await volunterCollection.find().toArray();
+    app.get('/allVolunteers', verifyToken, async (req, res) => {
+      const result = await volunterCollection
+        .find({})
+        .sort({ startDate: 1 })
+        .toArray();
       res.send(result);
     });
 
-    app.get('/allVolunteers/:id', async (req, res) => {
+    app.get('/allVolunteers/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const qurey = { _id: new ObjectId(id) };
       const result = await volunterCollection.findOne(qurey);
@@ -69,12 +120,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/volunteerss', async (req, res) => {
-      const result = await volunterCollection.find(req.query).toArray();
-      //  const query = { $text: { $search: 'trek' } };
-      res.send(result);
-    });
-    app.get('/mangesPost', async (req, res) => {
+    app.get('/mangesPost', verifyToken, async (req, res) => {
       const result = await volunterCollection.find(req.query).toArray();
       res.send(result);
     });
@@ -85,14 +131,14 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/loderData/:id', async (req, res) => {
+    app.get('/loderData/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const user = { _id: new ObjectId(id) };
       const result = await volunterCollection.findOne(user);
       res.send(result);
     });
 
-    app.put('/updatess/:id', async (req, res) => {
+    app.put('/updatess/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const qureyss = { _id: new ObjectId(id) };
       const userData = req.body;
@@ -113,7 +159,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/myrequstData', async (req, res) => {
+    app.get('/myrequstData', verifyToken, async (req, res) => {
       const result = await volunterRequesCollection.find(req.query).toArray();
       res.send(result);
     });
@@ -124,9 +170,20 @@ async function run() {
       const result = await volunterRequesCollection.deleteOne(qurey);
       res.send(result);
     });
+    app.patch('/volunteersNumbers/:id', verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const qurey = { _id: new ObjectId(id) };
+      // const numbers = req.body
+      const result = await volunterCollection.updateOne(qurey, {
+        $inc: { neededNumber: -1 },
+      });
 
+      const volunteerDetail = await volunterCollection.findOne(qurey);
+
+      res.send({ result, volunteerDetail });
+    });
     // Send a ping to confirm a successful connection
-    await client.db('admin').command({ ping: 1 });
+    // await client.db('admin').command({ ping: 1 });
     console.log(
       'Pinged your deployment. You successfully connected to MongoDB!'
     );
