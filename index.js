@@ -8,7 +8,12 @@ const app = express();
 const port = process.env.PORT || 5000;
 app.use(
   cors({
-    origin: ['http://localhost:5173'],
+    origin: [
+      'http://localhost:5173',
+      'https://volunteers-eb06b.web.app',
+      'https://volunteers-eb06b.firebaseapp.com',
+      'https://6644274c6e796e3d5b7dbef3--boisterous-meerkat-eae690.netlify.app/',
+    ],
     credentials: true,
   })
 );
@@ -85,7 +90,7 @@ async function run() {
       const result = await volunterCollection.insertOne(user);
       res.send(result);
     });
-    app.get('/volunteers', verifyToken, async (req, res) => {
+    app.get('/volunteers', async (req, res) => {
       const qurey = volunterCollection.find({}).sort({ startDate: 1 });
       const result = await qurey.toArray();
       res.send(result);
@@ -98,7 +103,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/allVolunteers', verifyToken, async (req, res) => {
+    app.get('/allVolunteers', async (req, res) => {
       const result = await volunterCollection
         .find({})
         .sort({ startDate: 1 })
@@ -124,6 +129,7 @@ async function run() {
       const result = await volunterCollection.find(req.query).toArray();
       res.send(result);
     });
+
     app.delete('/mangesPost/:id', async (req, res) => {
       const id = req.params.id;
       const querys = { _id: new ObjectId(id) };
@@ -159,7 +165,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/myrequstData', verifyToken, async (req, res) => {
+    app.get('/myrequstDatass', verifyToken, async (req, res) => {
       const result = await volunterRequesCollection.find(req.query).toArray();
       res.send(result);
     });
@@ -170,6 +176,7 @@ async function run() {
       const result = await volunterRequesCollection.deleteOne(qurey);
       res.send(result);
     });
+
     app.patch('/volunteersNumbers/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const qurey = { _id: new ObjectId(id) };
@@ -181,6 +188,16 @@ async function run() {
       const volunteerDetail = await volunterCollection.findOne(qurey);
 
       res.send({ result, volunteerDetail });
+    });
+
+    app.get('/volunteerSerch', async (req, res) => {
+      const filter = req?.query;
+      const qurey = {
+        title: { $regex: filter?.search, $options: 'i' },
+      };
+      const result = await volunterCollection.find(qurey).toArray();
+      console.log(result);
+      res.send(result);
     });
     // Send a ping to confirm a successful connection
     // await client.db('admin').command({ ping: 1 });
